@@ -3,13 +3,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-includes');
   grunt.loadNpmTasks('grunt-autoprefixer');
   grunt.loadNpmTasks('grunt-contrib-copy');
-  grunt.loadNpmTasks('grunt-contrib-jade');
   grunt.loadNpmTasks('grunt-contrib-sass');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-connect');
 
-  grunt.registerTask('default', ['clean:dist', 'copy', 'jade', 'sass', 'autoprefixer', 'includes:javascript', 'connect', 'watch']);
+  grunt.registerTask('default', ['clean:dist', 'copy', 'includes:html', 'sass', 'autoprefixer', 'includes:script', 'connect', 'watch']);
 
   grunt.initConfig({
     clean: {
@@ -20,17 +19,31 @@ module.exports = function(grunt) {
       libraries: ['dist/assets/libraries'],
       images: ['dist/assets/images']
     },
-    jade: {
-      compile: {
+    includes: {
+      html: {
         options: {
-          pretty: true
+          includeRegexp: /^(\s*)@include\s+"(\S+)";\s*$/,
+          silent: true
         },
         files: [{
           expand: true,
           cwd: 'source',
-          src: ['*.jade'],
+          src: '*.html',
           dest: 'dist',
           ext: '.html'
+        }]
+      },
+      script: {
+        options: {
+          includeRegexp: /^(\s*)@include\s+"(\S+)";\s*$/,
+          silent: true
+        },
+        files: [{
+          expand: true,
+          cwd: 'source/scripts',
+          src: '*.js',
+          dest: 'dist/assets/scripts',
+          ext: '.js'
         }]
       }
     },
@@ -44,7 +57,7 @@ module.exports = function(grunt) {
         files: [{
           expand: true,
           cwd: 'source/styles',
-          src: ['*.sass'],
+          src: ['*.scss'],
           dest: 'dist/assets/styles',
           ext: '.css'
         }]
@@ -73,21 +86,6 @@ module.exports = function(grunt) {
         }]
       }
     },
-    includes: {
-      javascript: {
-        options: {
-          includeRegexp: /^(\s*)@include\s+"(\S+)";\s*$/,
-          silent: true
-        },
-        files: [{
-          expand: true,
-          cwd: 'source/scripts',
-          src: '*.js',
-          dest: 'dist/assets/scripts',
-          ext: '.js'
-        }]
-      }
-    },
     copy: {
       libraries: {
         expand: true,
@@ -103,25 +101,25 @@ module.exports = function(grunt) {
       }
     },
     watch: {
-      jade: {
-        files: ['source/**/*.jade'],
-        tasks: ['jade'],
+      html: {
+        files: ['source/**/*.html'],
+        tasks: ['includes:html'],
         options: {
           spawn: false,
           livereload: true
         }
       },
       sass: {
-        files: ['source/styles/**/*.sass'],
+        files: ['source/styles/**/*.scss'],
         tasks: ['sass', 'autoprefixer'],
         options: {
           spawn: false,
           livereload: true
         }
       },
-      javascript: {
+      script: {
         files: ['source/scripts/**/*.js'],
-        tasks: ['includes:javascript'],
+        tasks: ['includes:script'],
         options: {
           spawn: false,
           livereload: true

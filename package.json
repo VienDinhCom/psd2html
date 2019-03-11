@@ -1,25 +1,25 @@
 {
-  "name": "jadesass",
+  "name": "front-end-workspace",
   "version": "1.0.0",
-  "description": "Jade & Sass for Front-end Development",
+  "description": "Task Runner for Front-end Development: Grunt, SCSS & Including HTML/JS",
   "keywords": [
-    "Jade",
+    "Grunt",
     "Sass",
-    "Grunt"
+    "Including HTML/JS"
   ],
   "author": "Maxvien",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Maxvien/Jadesass/issues"
+    "url": "https://github.com/Maxvien/front-end-workspace/issues"
   },
-  "homepage": "https://github.com/Maxvien/Jadesass#readme",
+  "homepage": "https://github.com/Maxvien/front-end-workspace#readme",
   "main": "gruntfile.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://maxvien@github.com/Maxvien/Jadesass.git"
+    "url": "git+https://github.com/Maxvien/front-end-workspace.git"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
@@ -27,7 +27,6 @@
     "grunt-contrib-clean": "^0.6.0",
     "grunt-contrib-connect": "^0.11.2",
     "grunt-contrib-copy": "^0.8.1",
-    "grunt-contrib-jade": "^0.15.0",
     "grunt-contrib-sass": "^0.9.2",
     "grunt-contrib-watch": "^0.6.1",
     "grunt-includes": "^0.5.1"

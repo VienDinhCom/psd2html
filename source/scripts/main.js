@@ -1,1 +1,4 @@
-@include "includes/general.js";
+'use strict';
+
+@include "includes/helpers.js";
+@include "includes/global.js";
