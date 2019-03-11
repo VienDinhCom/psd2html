@@ -1,0 +1,45 @@
+.u-text--p {
+  @include line-height();
+}
+
+.u-text--h {
+  @include line-height(1.2em);
+
+  * {
+    @include line-height(1.2em);
+    color: inherit;
+    text-decoration: inherit;
+  }
+}
+
+.u-text--left {
+  text-align: left;
+}
+
+.u-text--center {
+  text-align: center;
+}
+
+.u-text--justify {
+  text-align: justify;
+}
+
+.u-text--right {
+  text-align: right;
+}
+
+.u-text--overline {
+  text-decoration: overline;
+}
+
+.u-text--line-through {
+  text-decoration: line-through;
+}
+
+.u-text--underline {
+  text-decoration: underline;
+}
+
+.u-text--primary {
+  background: #000;
+}

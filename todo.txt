@@ -1,0 +1,39 @@
+- Chỉ có một . trong rule name.
+- Chỉ có một __ trong rule name.
+- Chỉ có một -- trong rule name.
+- Không dùng # cho rule name.
+- Không dùng tag nae cho rule name. (input[type])
+- Hạn chế các prefix: l, m, c, e
+- Thứ tự từ trên xuống dưới: elm, mod
+- Đặt ra exeption cho những thứ không theo BEM.
+  + Phải nằm bên trong elm
+
+
+
+Không dùng SCSS nữa, dùng POSTCSS luôn :D
+
+jQuery Plugins
+- exists
+- BEM
+- media query
+
+
+Selector: https://www.w3schools.com/cssref/css_selectors.asp
+Tags: https://www.w3schools.com/tags/ref_byfunc.asp
+Flex: https://flexboxfroggy.com/
+http://whatpixel.com/css-learning-games/
+
+# WLS Config
+export PS1='\u@\h:~$ '
+
+Blog
+Magazine
+Corporate
+Cart
+
+
+About
+Contact
+Pages
+
+A server: Key

@@ -1,0 +1,11 @@
+{{#extend "app-layout-drawer" position="left" pushed=true dimmed=true hidden=true}}
+  {{#content "children-drawer"}}
+    <a href="#" data-drawer="toggle">Toggle</a>
+
+    {{>app-button}}
+
+  {{/content}}
+  {{#content "children-main"}}
+    <a href="#" data-drawer="toggle">Toggle</a>
+  {{/content}}
+{{/extend}}
