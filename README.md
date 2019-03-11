@@ -1,5 +1,5 @@
 # psd2html
-Using Gulp, Twig, SCSS, v.Nu, Stylelint, Eslint, ... for building web templates
+Using Gulp, Twig, SCSS, v.Nu, Stylelint, and Eslint for building web templates.
 
 ## Versions
 * [Version 1: Using Grunt, LESS, and SSI for building templates.](https://github.com/Maxvien/psd2html/tree/v1)
