@@ -1,13 +1,16 @@
 {
-  "extends": [
-    "airbnb-base/legacy"
-  ],
+  "extends": [ "airbnb-base/legacy", "prettier" ],
+  "plugins": [ "prettier" ],
+  "env": {
+    "node": true,
+    "browser": true
+  },
   "globals": {
     "$": true
   },
   "rules": {
-    "wrap-iife": "off",
-    "linebreak-style": "off",
-    "func-names": "off"
+    "func-names": "off",
+    "vars-on-top":"off",
+    "prettier/prettier": "error"
   }
 }

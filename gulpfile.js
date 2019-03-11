@@ -1,230 +1,240 @@
-"use strict";
-
-var _fs = _interopRequireDefault(require("fs"));
-
-var _del = _interopRequireDefault(require("del"));
-
-var _path = _interopRequireDefault(require("path"));
-
-var _gulp = _interopRequireDefault(require("gulp"));
-
-var _colors = _interopRequireDefault(require("colors"));
-
-var _browserSync = _interopRequireDefault(require("browser-sync"));
-
-var _handlebarsLayouts = _interopRequireDefault(require("handlebars-layouts"));
-
-var _handlebarsHelpers = _interopRequireDefault(require("handlebars-helpers"));
-
-var _bufferReplace = _interopRequireDefault(require("buffer-replace"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
+var fs = require('fs');
+var path = require('path');
+var gulp = require('gulp');
+var colors = require('colors');
 var $ = require('gulp-load-plugins')();
+var browserSync = require('browser-sync');
+var bufferReplace = require('buffer-replace');
+var config = require('./package.json').config;
 
-var reload = _browserSync.default.reload;
+function getPaths() {
+  var root = __dirname;
+  var src = path.join(root, config.src.base);
+  var dist = path.join(root, config.dist.base);
 
-var src = _path.default.join(__dirname, 'src');
-
-var blocks = _path.default.join(src, 'blocks');
-
-(0, _browserSync.default)({
-  notify: false,
-  // Customize the Browsersync console logging prefix
-  logPrefix: 'WSK',
-  // Allow scroll syncing across breakpoints
-  scrollElementMapping: ['main', '.mdl-layout'],
-  // Run as an https by uncommenting 'https: true'
-  // Note: this uses an unsigned certificate which on first access
-  //       will present a certificate warning in the browser.
-  // https: true,
-  server: ['dist'],
-  open: false,
-  port: 3000
-});
-
-function getPaths(dir, ext) {
-  return _fs.default.readdirSync(dir).filter(function (item) {
-    return _fs.default.lstatSync(_path.default.join(dir, item)).isDirectory();
-  }).map(function (block) {
-    return _path.default.join(dir, block, block + ext);
-  }).filter(function (file) {
-    if (_fs.default.existsSync(file)) return _fs.default.lstatSync(file).isFile();
-    return false;
-  });
+  return {
+    src: {
+      base: src,
+      pages: path.join(src, config.src.pages, '*.twig'),
+      components: path.join(src, 'components'),
+      images: path.join(src, 'images/**/*'),
+      vendor: path.join(src, 'vendor/**/*'),
+    },
+    dist: {
+      base: dist,
+      assets: path.join(dist, config.dist.assets),
+      images: path.join(dist, config.dist.assets, 'images'),
+      vendor: path.join(dist, config.dist.assets, 'vendor'),
+    },
+  };
 }
 
-function comment(filePath) {
-  var block = _path.default.basename(filePath).replace(_path.default.extname(filePath), '');
-
-  return block === 'global' ? '' : "/* .".concat(block, "\n---------------------------------------------------------------------- */\n");
-}
-
-_gulp.default.task('templates', function () {
-  var partials = {};
-  getPaths(blocks, '.hbs').forEach(function (file) {
-    var partial = _path.default.basename(file).replace('.hbs', '');
-
-    partials[partial] = "{{>".concat(partial, "/").concat(partial, "}}");
-  });
-  return _gulp.default.src('src/*.hbs').pipe($.hb().partials('src/blocks/**/*.hbs').partials(partials).helpers((0, _handlebarsHelpers.default)()).helpers(_handlebarsLayouts.default)).on('error', function (err) {
-    // eslint-disable-line
-    console.log(err.fileName.underline); // eslint-disable-line
-
-    console.log(_colors.default.grey(' Error:') + '  ✖  '.red + err.message + '\n'); // eslint-disable-line
-
-    this.emit('end');
-  }).pipe($.rename(function (file) {
-    return file.extname = '.html';
-  })) // eslint-disable-line
-  .pipe($.htmlmin({
-    collapseWhitespace: true,
-    removeEmptyAttributes: false,
-    removeEmptyElements: false
-  })).pipe($.htmlPrettify({
-    indent_char: ' ',
-    indent_size: 2
-  })).pipe(_gulp.default.dest('dist')).pipe($.htmllint({}, function (filepath, issues) {
-    issues.forEach(function (issue) {
-      console.log('\n' + filepath.underline); // eslint-disable-line
-
-      console.log(_colors.default.grey(' ' + issue.line + ':' + issue.column) + '  ✖  '.red + issue.msg + _colors.default.grey('\t' + issue.code + '\n')); // eslint-disable-line
+function getComponentPaths(ext) {
+  var components = getPaths().src.components;
+  var globalFile = path.join(getPaths().src.base, 'global/global' + ext);
+  var files = fs
+    .readdirSync(components)
+    .filter(function(component) {
+      return fs.lstatSync(path.join(components, component)).isDirectory();
+    })
+    .map(function(component) {
+      return path.join(components, component, component + ext);
+    })
+    .filter(function(file) {
+      return fs.existsSync(file) && fs.lstatSync(file).isFile();
     });
-  })).on('end', function () {
-    return reload();
+
+  if (fs.existsSync(globalFile) && fs.lstatSync(globalFile).isFile()) {
+    files.unshift(globalFile);
+  }
+
+  return files;
+}
+
+gulp.task('templates', function() {
+  return gulp
+    .src(getPaths().src.pages)
+    .pipe($.twig({}))
+    .pipe(
+      $.htmlPrettify({
+        indent_char: ' ',
+        indent_size: 2,
+      })
+    )
+    .pipe(gulp.dest(getPaths().dist.base))
+    .on('end', function() {
+      browserSync.reload();
+    });
+});
+
+gulp.task('styles', function() {
+  return gulp
+    .src(getComponentPaths('.scss'))
+    .pipe($.sourcemaps.init())
+    .pipe(
+      $.tap(function(styleFile) {
+        var component = path.basename(styleFile.path).replace('.scss', '');
+
+        if (component === 'global') return null;
+
+        if (styleFile.contents.toString().indexOf(':host') !== 0) {
+          console.log('\n' + styleFile.path.underline); // eslint-disable-line
+          console.log( // eslint-disable-line
+            colors.grey(' 1:1') +
+              '  ✖  '.red +
+              "Missing the ':host' selector at the first line."
+          );
+
+          return null;
+        }
+
+        styleFile.contents = bufferReplace( // eslint-disable-line
+          Buffer.from(styleFile.contents),
+          ':host',
+          '/* Component: .' +
+            component +
+            '\n--------------------------------------------------*/\n.' +
+            component
+        );
+
+        return null;
+      })
+    )
+    .pipe($.concat('main.scss', { newLine: '\n' }))
+    .pipe($.sass({ outputStyle: 'expanded' }).on('error', $.sass.logError))
+    .pipe(
+      $.autoprefixer({
+        browsers: ['>0.2%', 'not dead', 'not ie <= 11', 'not op_mini all'],
+        cascade: false,
+      })
+    )
+    .pipe($.sourcemaps.write('./maps'))
+    .pipe(gulp.dest(getPaths().dist.assets))
+    .pipe(browserSync.stream());
+});
+
+gulp.task('scripts', function scripts() {
+  return gulp
+    .src(getComponentPaths('.js'))
+    .pipe($.sourcemaps.init())
+    .pipe(
+      $.if(function(file) {
+        return path.basename(file.path) !== 'global.js';
+      }, $.insert.prepend("$(':host').exists(function() {\n"))
+    )
+    .pipe(
+      $.if(function(file) {
+        return path.basename(file.path) !== 'global.js';
+      }, $.insert.prepend(
+        '/* Component: :host\n--------------------------------------------------*/\n'
+      ))
+    )
+    .pipe(
+      $.if(function(file) {
+        return path.basename(file.path) !== 'global.js';
+      }, $.insert.append('\n});\n'))
+    )
+    .pipe(
+      $.tap(function(scriptFile) {
+        var component = path.basename(scriptFile.path).replace('.js', '');
+
+        if (component === 'global') return null;
+
+        scriptFile.contents = bufferReplace( // eslint-disable-line
+          Buffer.from(scriptFile.contents),
+          ':host',
+          '.' + component
+        );
+
+        return null;
+      })
+    )
+    .pipe($.concat('main.js'))
+    .pipe($.eslint({ fix: true }))
+    .pipe($.sourcemaps.write('./maps'))
+    .pipe(gulp.dest(getPaths().dist.assets))
+    .on('end', function() {
+      browserSync.reload();
+    });
+});
+
+gulp.task('images', function images() {
+  return gulp
+    .src(getPaths().src.images)
+    .pipe(
+      $.cache(
+        $.imagemin({
+          progressive: true,
+          interlaced: true,
+        })
+      )
+    )
+    .pipe(gulp.dest(getPaths().dist.images))
+    .on('end', function() {
+      browserSync.reload();
+    });
+});
+
+gulp.task('vendor', function() {
+  return gulp
+    .src(getPaths().src.vendor)
+    .pipe(gulp.dest(getPaths().dist.vendor))
+    .on('end', function() {
+      browserSync.reload();
+    });
+});
+
+gulp.task('clean', function() {
+  return gulp.src(getPaths().dist.base + '/*').pipe($.clean({ force: true }));
+});
+
+gulp.task(
+  'build',
+  gulp.series(
+    'clean',
+    gulp.parallel('templates', 'scripts', 'styles', 'images', 'vendor')
+  )
+);
+
+gulp.task('serve', function() {
+  browserSync({
+    notify: false,
+    logPrefix: ' https://github.com/maxvien ',
+    server: getPaths().dist.base,
+    open: false,
+    port: 8080,
   });
 });
 
-_gulp.default.task('libs', function () {
-  return _gulp.default.src('src/global/libs/**/*').pipe(_gulp.default.dest('dist/sources/libs'));
+gulp.task('watch', function() {
+  var src = getPaths().src;
+
+  $.watch([path.join(src.base, 'images/**/*')], gulp.parallel('images'));
+  $.watch([path.join(src.base, 'vendor/**/*')], gulp.parallel('vendor'));
+
+  $.watch(
+    [src.pages, path.join(src.base, 'components/**/*.twig')],
+    gulp.parallel('templates')
+  );
+
+  $.watch(
+    [
+      path.join(src.base, 'global/**/*.{scss,css}'),
+      path.join(src.base, 'components/**/*.{scss,css}'),
+    ],
+    gulp.parallel('styles')
+  );
+
+  $.watch(
+    [
+      path.join(src.base, 'global/**/*.js'),
+      path.join(src.base, 'components/**/*.js'),
+    ],
+    gulp.parallel('scripts')
+  );
 });
 
-_gulp.default.task('styles', ['libs'], function (done) {
-  var sources = getPaths(blocks, '.scss');
-  sources.unshift(_path.default.join(src, 'global/global.scss'));
-  return _gulp.default.src(sources).pipe($.sourcemaps.init()).pipe($.stylelint({
-    failAfterError: false,
-    reporters: [{
-      formatter: 'string',
-      console: true
-    }],
-    syntax: 'scss',
-    configOverrides: {
-      plugins: ['stylelint-scss'],
-      rules: {
-        'property-no-vendor-prefix': true,
-        'value-no-vendor-prefix': true,
-        'at-rule-no-vendor-prefix': true
-      }
-    }
-  })).pipe($.tap(function (file) {
-    var patternSrc = ':host';
+gulp.task('default', gulp.series('build', gulp.parallel('watch', 'serve')));
 
-    var block = _path.default.basename(file.path).replace('.scss', '');
-
-    var checkRoot = file.contents.toString().indexOf(patternSrc);
-    var patternDest = ".".concat(block);
-    if (block === 'global') return;
-
-    if (checkRoot === 0) {
-      file.contents = (0, _bufferReplace.default)(Buffer.from(file.contents), patternSrc, patternDest); // eslint-disable-line
-    } else {
-      console.log('\n' + _path.default.basename(file.path).underline); // eslint-disable-line
-
-      console.log(_colors.default.grey(' 1:1') + '  ✖  '.red + 'Missing the \':host\' selector at the first line.'); // eslint-disable-line
-    }
-  })).pipe($.insert.transform(function (contents, file) {
-    return comment(file.path) + contents;
-  })).pipe(_gulp.default.dest('dist/sources')).pipe($.concat('main.scss', {
-    newLine: '\n'
-  })).pipe($.sass({
-    outputStyle: 'expanded'
-  }).on('error', $.sass.logError)).pipe($.stylelint({
-    failAfterError: false,
-    reporters: [{
-      formatter: 'string',
-      console: true
-    }]
-  })).pipe($.rename(function (file) {
-    return file.extname = '.css';
-  })) // eslint-disable-line
-  .pipe($.autoprefixer(['ie >= 10', 'ie_mob >= 10', 'ff >= 30', 'chrome >= 34', 'safari >= 7', 'opera >= 23', 'ios >= 7', 'android >= 4.4', 'bb >= 10'])).pipe($.stylelint({
-    failAfterError: false,
-    fix: true
-  })).pipe($.sourcemaps.write('.')).pipe(_gulp.default.dest('dist/assets/styles')).pipe(_browserSync.default.stream());
-});
-
-_gulp.default.task('scripts', function () {
-  var sources = getPaths(blocks, '.js');
-  sources.unshift(_path.default.join(src, 'global/global.js'));
-  return _gulp.default.src(sources).pipe($.sourcemaps.init()).pipe($.eslint()).pipe($.eslint.format()).pipe($.indent({
-    tabs: false,
-    amount: 2
-  })).pipe($.if(function (file) {
-    return _path.default.basename(file.path) !== 'global.js';
-  }, $.insert.prepend('$(\':host\').exists( function() {'))).pipe($.if(function (file) {
-    return _path.default.basename(file.path) !== 'global.js';
-  }, $.insert.append('\n});\n'))).pipe($.tap(function (file) {
-    var block = _path.default.basename(file.path).replace('.js', '');
-
-    var patternSrc = '$(\':host\').exists( function() {';
-    var patternDest = patternSrc.replace(':host', ".".concat(block));
-    if (block == 'global') return;
-    file.contents = (0, _bufferReplace.default)(Buffer.from(file.contents), patternSrc, patternDest); // eslint-disable-line
-  })).pipe($.insert.transform(function (contents, file) {
-    return comment(file.path) + contents;
-  })).pipe($.eslint({
-    fix: true
-  })).pipe(_gulp.default.dest('dist/sources')).pipe($.concat('main.js', {
-    newLine: '\n'
-  })).pipe($.sourcemaps.write('.')).pipe(_gulp.default.dest('dist/assets/scripts')).on('end', function () {
-    return reload();
-  });
-});
-
-_gulp.default.task('images', function () {
-  return _gulp.default.src('src/images/**/*').pipe($.cache($.imagemin({
-    progressive: true,
-    interlaced: true
-  }))).pipe(_gulp.default.dest('dist/assets/images'));
-}).on('end', function () {
-  return reload();
-});
-
-_gulp.default.task('vendor', ['build'], function () {
-  return _gulp.default.src('src/vendor/**/*').pipe(_gulp.default.dest('dist/assets/vendor'));
-}).on('end', function () {
-  return reload();
-});
-
-_gulp.default.task('reload', function () {
-  return reload();
-});
-
-_gulp.default.task('clean', function () {
-  return (0, _del.default)(['dist/*'], {
-    dot: true
-  });
-});
-
-_gulp.default.task('build', ['clean'], function () {
-  return _gulp.default.start(['vendor', 'images', 'templates', 'styles', 'scripts']);
-});
-
-_gulp.default.task('default', ['build'], function () {
-  $.watch(['src/*.hbs', 'src/blocks/**/*.hbs'], function () {
-    return _gulp.default.start(['templates']);
-  });
-  $.watch(['src/global/**/*.{scss,css}', 'src/blocks/**/*.{scss,css}'], function () {
-    return _gulp.default.start(['styles']);
-  });
-  $.watch(['src/global/**/*.js', 'src/blocks/**/*.js'], function () {
-    return _gulp.default.start(['scripts']);
-  });
-  $.watch(['src/images/**/*'], function () {
-    return _gulp.default.start(['images']);
-  });
-  $.watch(['src/vendor/**/*'], function () {
-    return _gulp.default.start(['vendor']);
-  });
-});
+// https://github.com/htanjo/css-bundling
+// https://parceljs.org/getting_started.html

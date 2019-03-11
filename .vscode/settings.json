@@ -1,0 +1,11 @@
+{
+  "editor.tabSize": 2,
+  "stylelint.enable": true,
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  "eslint.enable": true,
+  "eslint.autoFixOnSave": true,
+  "javascript.validate.enable": false,
+  "emmet.triggerExpansionOnTab": true
+}
